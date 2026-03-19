@@ -339,7 +339,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--model-path",
         dest="model",
         type=str,
-        default="model/Qwen3-1.7B",
+        default="model/Qwen3.5-2B",
         help="Target model path or alias to run.",
     )
     parser.add_argument("--models-config", type=str, default="configs/models.json")
