@@ -1,0 +1,10 @@
+__pycache__/
+.pycache/
+*.pyc
+.venv/
+.env
+.DS_Store
+
+outputs/
+!outputs/.gitkeep
+/model/Qwen3.5-2B/

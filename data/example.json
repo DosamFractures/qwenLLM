@@ -1,0 +1,10 @@
+[
+  {
+    "text": "This is a test message for fine-tuning.",
+    "class": "1"
+  },
+  {
+    "text": "Another sample message for supervised instruction tuning.",
+    "class": "0"
+  }
+]
