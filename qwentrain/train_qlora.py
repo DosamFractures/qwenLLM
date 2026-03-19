@@ -215,9 +215,9 @@ def train(args: argparse.Namespace) -> None:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="QLoRA fine-tune for Qwen3 and compatible CausalLM.")
-    parser.add_argument("--model-path", type=str, default="model/Qwen3-1.7B")
+    parser.add_argument("--model-path", type=str, default="model/Qwen3.5-2B")
     parser.add_argument("--data-path", type=str, default="data")
-    parser.add_argument("--output-dir", type=str, default="outputs/qwen3-1.7b-qlora")
+    parser.add_argument("--output-dir", type=str, default="outputs/qwen3.5-2b-qlora")
 
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--trust-remote-code", action="store_true")

@@ -65,6 +65,8 @@ python -m qwentrain.chat_cli -model qwen3.5-2b --local-files-only --load-in-4bit
 - `qwen3-1.7b -> model/Qwen3-1.7B`
 - `qwen3.5-2b -> model/Qwen3.5-2B`
 
+当前脚本默认模型为 `Qwen3.5-2B`。
+
 ## 4）在 PyCharm 中运行
 
 推荐运行方式：
@@ -84,15 +86,15 @@ python -m qwentrain.chat_cli -model qwen3.5-2b --local-files-only --load-in-4bit
 
 ```bash
 python -m qwentrain.train_qlora \
-  --model-path model/Qwen3-1.7B \
+  --model-path model/Qwen3.5-2B \
   --data-path data \
-  --output-dir outputs/qwen3-1.7b-qlora \
+  --output-dir outputs/qwen3.5-2b-qlora \
   --local-files-only
 ```
 
 训练后的 LoRA 适配器默认保存在：
 
-`outputs/qwen3-1.7b-qlora/adapter`
+`outputs/qwen3.5-2b-qlora/adapter`
 
 说明：
 - `--load-in-4bit` 默认开启（QLoRA 路径）；
@@ -102,9 +104,8 @@ python -m qwentrain.train_qlora \
 
 ```bash
 python -m qwentrain.merge_lora \
-  --base-model-path model/Qwen3-1.7B \
-  --adapter-path outputs/qwen3-1.7b-qlora/adapter \
-  --output-dir outputs/merged-qwen3-1.7b \
+  --base-model-path model/Qwen3.5-2B \
+  --adapter-path outputs/qwen3.5-2b-qlora/adapter \
+  --output-dir outputs/merged-qwen3.5-2b \
   --local-files-only
 ```
-

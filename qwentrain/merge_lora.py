@@ -42,7 +42,7 @@ def merge(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Merge LoRA adapter into base model.")
-    parser.add_argument("--base-model-path", type=str, default="model/Qwen3-1.7B")
+    parser.add_argument("--base-model-path", type=str, default="model/Qwen3.5-2B")
     parser.add_argument("--adapter-path", type=str, required=True)
     parser.add_argument("--output-dir", type=str, default="outputs/merged-model")
     parser.add_argument("--dtype", type=str, choices=["float16", "bfloat16", "float32"], default="float16")
@@ -59,4 +59,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

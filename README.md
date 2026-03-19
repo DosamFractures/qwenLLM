@@ -65,6 +65,8 @@ Model aliases are defined in `configs/models.json`, for example:
 - `qwen3-1.7b -> model/Qwen3-1.7B`
 - `qwen3.5-2b -> model/Qwen3.5-2B`
 
+Default model used by scripts is `Qwen3.5-2B`.
+
 ## 4) Run in PyCharm
 
 Preferred run mode:
@@ -84,15 +86,15 @@ Run QLoRA training from `data/`:
 
 ```bash
 python -m qwentrain.train_qlora \
-  --model-path model/Qwen3-1.7B \
+  --model-path model/Qwen3.5-2B \
   --data-path data \
-  --output-dir outputs/qwen3-1.7b-qlora \
+  --output-dir outputs/qwen3.5-2b-qlora \
   --local-files-only
 ```
 
 The LoRA adapter will be saved to:
 
-`outputs/qwen3-1.7b-qlora/adapter`
+`outputs/qwen3.5-2b-qlora/adapter`
 
 Notes:
 - `--load-in-4bit` is enabled by default (QLoRA path).
@@ -102,9 +104,8 @@ Notes:
 
 ```bash
 python -m qwentrain.merge_lora \
-  --base-model-path model/Qwen3-1.7B \
-  --adapter-path outputs/qwen3-1.7b-qlora/adapter \
-  --output-dir outputs/merged-qwen3-1.7b \
+  --base-model-path model/Qwen3.5-2B \
+  --adapter-path outputs/qwen3.5-2b-qlora/adapter \
+  --output-dir outputs/merged-qwen3.5-2b \
   --local-files-only
 ```
-
