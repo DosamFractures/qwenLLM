@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+.DS_Store
+__pycache__/
+.pycache/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+outputs/

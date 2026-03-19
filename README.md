@@ -109,3 +109,64 @@ python -m qwentrain.merge_lora \
   --output-dir outputs/merged-qwen3.5-2b \
   --local-files-only
 ```
+
+## 7) Offline Deployment (whl + Docker)
+
+If your target server is offline, prepare wheel packages in an online environment first:
+
+```bash
+./prepare_offline_wheels.sh
+```
+
+By default, it uses `python:3.11-slim` and generates wheels for `linux/amd64`.  
+If your offline server is ARM, set platform explicitly:
+
+```bash
+./prepare_offline_wheels.sh --docker-platform linux/arm64
+```
+
+This generates:
+- `wheelhouse/` (offline wheel files)
+- `requirements.offline.lock.txt` (locked dependency list)
+
+Build offline image (default mode, installs from local wheels only):
+
+```bash
+./build_docker_image.sh qwentrain:offline
+```
+
+Online fallback build (debug only):
+
+```bash
+./build_docker_image.sh qwentrain:online --online
+```
+
+Export image for transfer:
+
+```bash
+docker save -o qwentrain_offline.tar qwentrain:offline
+```
+
+Load and run on offline server:
+
+```bash
+docker load -i qwentrain_offline.tar
+docker run --rm -it -v /path/to/model:/opt/qwentrain/model qwentrain:offline
+```
+
+### ARM64 Recommended Flow (Verified)
+
+If your target offline server is `arm64`, use:
+
+```bash
+./prepare_offline_wheels.sh --docker-platform linux/arm64
+docker build --platform linux/arm64 --build-arg USE_OFFLINE_WHEELS=1 -t qwentrain:offline-arm64 -f Dockerfile .
+docker save -o qwentrain_offline_arm64.tar qwentrain:offline-arm64
+```
+
+On the offline `arm64` server:
+
+```bash
+docker load -i qwentrain_offline_arm64.tar
+docker run --rm -it -v /path/to/model:/opt/qwentrain/model qwentrain:offline-arm64
+```

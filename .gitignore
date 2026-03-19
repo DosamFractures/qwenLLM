@@ -8,3 +8,6 @@ __pycache__/
 outputs/
 !outputs/.gitkeep
 /model/Qwen3.5-2B/
+requirements.docker.lock.txt
+requirements.offline.lock.txt
+wheelhouse/

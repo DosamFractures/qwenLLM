@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+"""终端聊天入口。
+
+本文件负责：
+1. 解析命令行参数；
+2. 按别名或路径加载本地模型；
+3. 打开一个可交互的终端对话循环；
+4. 支持运行时切换模型。
+"""
+
 import argparse
 import json
 import re
@@ -11,6 +20,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def detect_device(preferred: str) -> str:
+    """根据用户偏好和环境能力，推断设备类型。"""
     if preferred != "auto":
         return preferred
     if torch.cuda.is_available():
@@ -21,6 +31,7 @@ def detect_device(preferred: str) -> str:
 
 
 def resolve_dtype(dtype_name: str, device: str) -> torch.dtype:
+    """将字符串 dtype 转成 torch.dtype，并处理 auto 逻辑。"""
     if dtype_name == "float16":
         return torch.float16
     if dtype_name == "bfloat16":
@@ -28,7 +39,7 @@ def resolve_dtype(dtype_name: str, device: str) -> torch.dtype:
     if dtype_name == "float32":
         return torch.float32
 
-    # auto mode
+    # auto 模式：GPU 优先 bf16/f16，CPU 用 f32 以避免不支持的类型报错。
     if device == "cuda":
         return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     if device == "mps":
@@ -37,6 +48,7 @@ def resolve_dtype(dtype_name: str, device: str) -> torch.dtype:
 
 
 def load_model_aliases(config_path: str | None) -> dict[str, str]:
+    """读取模型别名配置文件，格式为 {alias: path}。"""
     if not config_path:
         return {}
     path = Path(config_path)
@@ -52,10 +64,12 @@ def load_model_aliases(config_path: str | None) -> dict[str, str]:
 
 
 def is_qwen_like_tokenizer(tokenizer: Any) -> bool:
+    """判断 tokenizer 是否支持 chat_template。"""
     return hasattr(tokenizer, "apply_chat_template")
 
 
 def extract_thinking_and_answer(raw_text: str) -> tuple[str | None, str]:
+    """从模型原始输出中提取 <think> 和最终回答。"""
     text = raw_text.strip()
     text = text.replace("<|im_end|>", "").strip()
     text = text.replace("<|endoftext|>", "").strip()
@@ -71,6 +85,8 @@ def extract_thinking_and_answer(raw_text: str) -> tuple[str | None, str]:
 
 
 class ChatSession:
+    """聊天会话对象，封装模型加载、提示词构建和生成。"""
+
     def __init__(
         self,
         model_path: str,
@@ -100,16 +116,19 @@ class ChatSession:
         self.history: list[dict[str, str]] = []
         self.model_path = ""
 
-        self.tokenizer = None
-        self.model = None
-        self.model_dtype = None
+        self.tokenizer: Any | None = None
+        self.model: Any | None = None
+        self.model_dtype: torch.dtype | None = None
 
+        # 初始化时立即加载模型，保证会话进入后可直接对话。
         self.reload_model(model_path, clear_history=True)
 
     def resolve_model_path(self, model_or_alias: str) -> str:
+        """将输入（别名或路径）转换为实际模型路径。"""
         return self.model_aliases.get(model_or_alias, model_or_alias)
 
     def reload_model(self, model_or_alias: str, clear_history: bool = True) -> None:
+        """重新加载模型（用于启动或 /model 切换）。"""
         from transformers import BitsAndBytesConfig
 
         resolved = self.resolve_model_path(model_or_alias)
@@ -161,6 +180,7 @@ class ChatSession:
             self.history = []
 
     def _build_prompt(self, messages: list[dict[str, str]]) -> str:
+        """根据 tokenizer 能力构建模型输入文本。"""
         if is_qwen_like_tokenizer(self.tokenizer):
             try:
                 return self.tokenizer.apply_chat_template(
@@ -170,12 +190,14 @@ class ChatSession:
                     enable_thinking=self.enable_thinking,
                 )
             except TypeError:
+                # 兼容没有 enable_thinking 参数的 tokenizer 版本。
                 return self.tokenizer.apply_chat_template(
                     messages,
                     tokenize=False,
                     add_generation_prompt=True,
                 )
 
+        # 兜底模板（适配不支持 chat_template 的模型）。
         turns = []
         for message in messages:
             role = message["role"].capitalize()
@@ -184,6 +206,7 @@ class ChatSession:
         return "\n".join(turns)
 
     def _get_inputs_on_model_device(self, text: str) -> dict[str, torch.Tensor]:
+        """将 tokenized 输入迁移到模型所在设备。"""
         model_inputs = self.tokenizer([text], return_tensors="pt")
         if hasattr(self.model, "device"):
             target_device = self.model.device
@@ -191,6 +214,7 @@ class ChatSession:
         return model_inputs
 
     def ask(self, user_text: str) -> tuple[str | None, str]:
+        """执行单轮问答，返回 (thinking, answer)。"""
         self.history.append({"role": "user", "content": user_text})
         prompt = self._build_prompt(self.history)
         model_inputs = self._get_inputs_on_model_device(prompt)
@@ -215,6 +239,7 @@ class ChatSession:
 
 
 def run_chat(args: argparse.Namespace) -> None:
+    """运行终端聊天主循环。"""
     aliases = load_model_aliases(args.models_config)
     session = ChatSession(
         model_path=args.model,
@@ -332,6 +357,7 @@ def run_chat(args: argparse.Namespace) -> None:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """构建命令行参数解析器。"""
     parser = argparse.ArgumentParser(description="Terminal chat for local Qwen/LLM models.")
     parser.add_argument(
         "-model",
@@ -357,6 +383,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """程序入口。"""
     parser = build_arg_parser()
     args = parser.parse_args()
     run_chat(args)
@@ -364,3 +391,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

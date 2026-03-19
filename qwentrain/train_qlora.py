@@ -1,5 +1,14 @@
 from __future__ import annotations
 
+"""QLoRA 微调入口。
+
+本文件负责：
+1. 读取 `data/*.json` 数据；
+2. 将样本转换为聊天模板文本；
+3. 使用 PEFT + QLoRA 训练适配器；
+4. 输出 adapter 权重到 `outputs/.../adapter`。
+"""
+
 import argparse
 import json
 import random
@@ -20,6 +29,12 @@ from transformers import (
 
 
 def load_records(data_path: str) -> list[dict[str, str]]:
+    """加载数据集并标准化为 {text, class} 格式。
+
+    兼容两种字段命名：
+    - 新格式：`class`
+    - 旧格式：`output`
+    """
     path = Path(data_path)
     if not path.exists():
         raise FileNotFoundError(f"Dataset path not found: {data_path}")
@@ -41,7 +56,7 @@ def load_records(data_path: str) -> list[dict[str, str]]:
             if "class" in item:
                 class_value = item["class"]
             elif "output" in item:
-                # Backward compatibility for old datasets.
+                # 兼容历史数据字段。
                 class_value = item["output"]
             else:
                 raise ValueError(f"{file}[{idx}] must contain class (or legacy output).")
@@ -50,6 +65,7 @@ def load_records(data_path: str) -> list[dict[str, str]]:
 
 
 def apply_template(tokenizer: Any, text: str, class_label: str, enable_thinking: bool) -> str:
+    """把单条样本映射成可训练的对话文本。"""
     if hasattr(tokenizer, "apply_chat_template"):
         messages = [
             {"role": "user", "content": text},
@@ -63,6 +79,7 @@ def apply_template(tokenizer: Any, text: str, class_label: str, enable_thinking:
                 enable_thinking=enable_thinking,
             )
         except TypeError:
+            # 兼容旧 tokenizer（无 enable_thinking 参数）。
             return tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -72,10 +89,12 @@ def apply_template(tokenizer: Any, text: str, class_label: str, enable_thinking:
 
 
 def parse_target_modules(modules: str) -> list[str]:
+    """解析 LoRA 目标层列表。"""
     return [x.strip() for x in modules.split(",") if x.strip()]
 
 
 def train(args: argparse.Namespace) -> None:
+    """执行 QLoRA 训练主流程。"""
     random.seed(args.seed)
     torch.manual_seed(args.seed)
 
@@ -153,6 +172,7 @@ def train(args: argparse.Namespace) -> None:
     model.config.use_cache = False
 
     if args.load_in_4bit:
+        # 量化训练前的标准准备步骤。
         model = prepare_model_for_kbit_training(model)
     elif torch.cuda.is_available():
         model.gradient_checkpointing_enable()
@@ -214,6 +234,7 @@ def train(args: argparse.Namespace) -> None:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """构建微调脚本参数。"""
     parser = argparse.ArgumentParser(description="QLoRA fine-tune for Qwen3 and compatible CausalLM.")
     parser.add_argument("--model-path", type=str, default="model/Qwen3.5-2B")
     parser.add_argument("--data-path", type=str, default="data")
@@ -257,6 +278,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """程序入口。"""
     parser = build_arg_parser()
     args = parser.parse_args()
     train(args)
@@ -264,3 +286,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

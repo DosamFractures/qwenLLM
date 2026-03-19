@@ -109,3 +109,64 @@ python -m qwentrain.merge_lora \
   --output-dir outputs/merged-qwen3.5-2b \
   --local-files-only
 ```
+
+## 7）离线服务器部署（whl + Docker）
+
+如果目标服务器无法联网，建议在联网环境先准备离线 wheel：
+
+```bash
+./prepare_offline_wheels.sh
+```
+
+默认会使用 `python:3.11-slim` 容器并按 `linux/amd64` 生成依赖。  
+如果你的离线服务器是 ARM，可指定平台：
+
+```bash
+./prepare_offline_wheels.sh --docker-platform linux/arm64
+```
+
+会在项目根目录生成：
+- `wheelhouse/`（离线 whl 包）
+- `requirements.offline.lock.txt`（锁定依赖）
+
+构建离线镜像（默认走本地 wheel，不访问公网）：
+
+```bash
+./build_docker_image.sh qwentrain:offline
+```
+
+在线回退构建（仅调试用）：
+
+```bash
+./build_docker_image.sh qwentrain:online --online
+```
+
+把镜像打包给离线服务器：
+
+```bash
+docker save -o qwentrain_offline.tar qwentrain:offline
+```
+
+离线服务器加载并运行：
+
+```bash
+docker load -i qwentrain_offline.tar
+docker run --rm -it -v /path/to/model:/opt/qwentrain/model qwentrain:offline
+```
+
+### ARM64 推荐流程（已验证）
+
+如果你的目标服务器是 `arm64`，建议直接按下面执行：
+
+```bash
+./prepare_offline_wheels.sh --docker-platform linux/arm64
+docker build --platform linux/arm64 --build-arg USE_OFFLINE_WHEELS=1 -t qwentrain:offline-arm64 -f Dockerfile .
+docker save -o qwentrain_offline_arm64.tar qwentrain:offline-arm64
+```
+
+在离线 `arm64` 服务器上：
+
+```bash
+docker load -i qwentrain_offline_arm64.tar
+docker run --rm -it -v /path/to/model:/opt/qwentrain/model qwentrain:offline-arm64
+```

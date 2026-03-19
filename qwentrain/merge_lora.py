@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""LoRA 合并脚本。
+
+将训练得到的 adapter 与底座模型合并，得到可直接部署的完整模型目录。
+"""
+
 import argparse
 from pathlib import Path
 
@@ -9,6 +14,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 def parse_dtype(name: str) -> torch.dtype:
+    """解析输出权重类型。"""
     if name == "float16":
         return torch.float16
     if name == "bfloat16":
@@ -17,6 +23,7 @@ def parse_dtype(name: str) -> torch.dtype:
 
 
 def merge(args: argparse.Namespace) -> None:
+    """执行 LoRA 合并。"""
     dtype = parse_dtype(args.dtype)
     base_model = AutoModelForCausalLM.from_pretrained(
         args.base_model_path,
@@ -41,6 +48,7 @@ def merge(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建参数解析器。"""
     parser = argparse.ArgumentParser(description="Merge LoRA adapter into base model.")
     parser.add_argument("--base-model-path", type=str, default="model/Qwen3.5-2B")
     parser.add_argument("--adapter-path", type=str, required=True)
@@ -52,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """程序入口。"""
     parser = build_parser()
     args = parser.parse_args()
     merge(args)
@@ -59,3 +68,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
